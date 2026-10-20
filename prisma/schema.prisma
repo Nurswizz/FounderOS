@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/* ---------------------------------- auth.js ---------------------------------- */
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  startup       Startup?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+/* --------------------------------- domain ------------------------------------ */
+
+enum Stage {
+  IDEA
+  VALIDATION
+  MVP
+  LAUNCH
+  GROWTH
+}
+
+enum ItemSource {
+  TEMPLATE
+  AI
+  CUSTOM
+}
+
+enum HubKind {
+  LINK
+  NOTE
+  CONTACT
+  DOC
+}
+
+enum MetricSource {
+  MANUAL
+  GITHUB
+}
+
+enum Provider {
+  GITHUB
+}
+
+model Startup {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String
+  industry    String?
+  stage       Stage    @default(IDEA)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roadmap      RoadmapItem[]
+  hub          HubEntry[]
+  metrics      Metric[]
+  integrations Integration[]
+}
+
+model RoadmapItem {
+  id          String     @id @default(cuid())
+  startupId   String
+  startup     Startup    @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  stage       Stage
+  title       String
+  description String?
+  order       Int        @default(0)
+  source      ItemSource @default(TEMPLATE)
+  doneAt      DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@index([startupId, stage])
+}
+
+model HubEntry {
+  id        String   @id @default(cuid())
+  startupId String
+  startup   Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  kind      HubKind
+  title     String
+  url       String?
+  body      String?
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([startupId, kind])
+}
+
+model Metric {
+  id         String       @id @default(cuid())
+  startupId  String
+  startup    Startup      @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  key        String
+  value      Float
+  source     MetricSource @default(MANUAL)
+  capturedAt DateTime     @default(now())
+
+  @@index([startupId, key, capturedAt])
+}
+
+model Integration {
+  id           String    @id @default(cuid())
+  startupId    String
+  startup      Startup   @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  provider     Provider
+  config       Json
+  lastSyncedAt DateTime?
+
+  @@unique([startupId, provider])
+}
