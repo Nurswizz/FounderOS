@@ -42,8 +42,13 @@ auth.ts (Auth.js, GitHub OAuth, сессии в БД)
 - Расписание: cron агента регистрирует воркер; по тику создаются запуски для стартапов с включённым `AgentSetting`.
 - Новый агент: значение в enum `AgentKey` → файл с `AgentDef` → строка в `AGENTS` → иконка в `components/agent-ui.tsx`.
 
+## Идейный скаут (`lib/ideas`)
+- Для основателя без идеи: чат `/ideas` (до создания стартапа, данные привязаны к `User`).
+- `scout.ts` — агент (web search + tool `save_idea` → `IdeaCandidate`), `turn.ts` — один ход диалога в воркере (очередь `idea-turn`): история SDK хранится в `IdeaSession.history`, текст ответа и текущее действие пишутся в `IdeaMessage` по ходу стрима, UI опрашивает.
+- «Выбрать» → `/onboarding?idea=…` с предзаполненной формой; при создании стартапа исследование сохраняется в хаб.
+
 ## Данные (Prisma)
-`User/Account/Session` (Auth.js) → `Startup` → `RoadmapItem`, `HubEntry`, `Metric` (снапшоты), `Integration` (config JSON), `AgentRun` → `AgentStep`, `PendingAction`; `AgentSetting` (расписания). Токен GitHub берётся из `Account`, собственные секреты не храним.
+`User/Account/Session` (Auth.js) → `Startup` → `RoadmapItem`, `HubEntry`, `Metric` (снапшоты), `Integration` (config JSON), `AgentRun` → `AgentStep`, `PendingAction`; `AgentSetting` (расписания). `User` → `IdeaSession` → `IdeaMessage`, `IdeaCandidate`. Токен GitHub берётся из `Account`, собственные секреты не храним.
 
 ## Инфраструктура
 - Postgres 17 — `docker-compose.yml` (порт 5442).

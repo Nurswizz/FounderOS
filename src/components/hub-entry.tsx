@@ -29,7 +29,9 @@ export function HubEntryRow({ entry, actions = true }: { entry: HubEntry; action
         ) : (
           <p className="text-sm">{entry.title}</p>
         )}
-        {entry.body ? <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-xs text-zinc-500">{entry.body}</p> : null}
+        {entry.body ? (
+          <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-xs text-zinc-500">{entry.body.replace(/^#+\s*|\*\*/gm, "")}</p>
+        ) : null}
       </div>
       {actions ? (
         <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">

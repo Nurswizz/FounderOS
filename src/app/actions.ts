@@ -6,7 +6,8 @@ import { signIn, signOut } from "@/auth";
 import { AgentKey, HubKind, Provider } from "@/generated/prisma/enums";
 import { createRun } from "@/lib/agents/ops";
 import { resolveAction } from "@/lib/agents/pending";
-import { enqueueRun } from "@/lib/queue";
+import { ideaForUser, ideaResearchMarkdown, sendIdeaMessage, startSession } from "@/lib/ideas/ops";
+import { enqueueIdeaTurn, enqueueRun } from "@/lib/queue";
 import { INTEGRATIONS } from "@/lib/integrations";
 import { CHECKPOINTS, detectStage } from "@/lib/onboarding";
 import { prisma } from "@/lib/prisma";
@@ -60,6 +61,7 @@ export async function createStartup(form: FormData) {
   );
   const drafts = await generateRoadmap({ ...profile, stage });
   const now = new Date();
+  const idea = await ideaForUser(userId, str(form, "ideaId"));
 
   await prisma.startup.create({
     data: {
@@ -72,6 +74,10 @@ export async function createStartup(form: FormData) {
           doneAt: stageIndex(d.stage) < stageIndex(stage) ? now : null,
         })),
       },
+      // Исследование «Идейного скаута» остаётся в хабе вместе с источниками.
+      hub: idea
+        ? { create: { kind: "DOC", title: `Исследование идеи: ${idea.title}`, body: ideaResearchMarkdown(idea), pinned: true } }
+        : undefined,
     },
   });
 
@@ -291,3 +297,20 @@ export async function deleteStartup(form: FormData) {
   redirect("/onboarding");
 }
 
+/* ---------------------------------- ideas ------------------------------------ */
+
+export async function sendIdeaMessageAction(form: FormData) {
+  const userId = await requireUserId();
+  const text = str(form, "text").slice(0, 4000);
+  if (!text) return;
+
+  const { session, accepted } = await sendIdeaMessage(userId, text);
+  if (accepted) await enqueueIdeaTurn(session.id);
+  revalidatePath("/ideas");
+}
+
+export async function restartIdeas() {
+  const userId = await requireUserId();
+  await startSession(userId);
+  revalidatePath("/ideas");
+}

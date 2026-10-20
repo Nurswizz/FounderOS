@@ -2,8 +2,9 @@ import "dotenv/config";
 import { AGENT_LIST } from "./lib/agents";
 import { createScheduledRuns } from "./lib/agents/ops";
 import { executeRun } from "./lib/agents/runner";
+import { executeIdeaTurn } from "./lib/ideas/turn";
 import { prisma } from "./lib/prisma";
-import { enqueueRun, getBoss, RUN_QUEUE } from "./lib/queue";
+import { enqueueRun, getBoss, IDEA_QUEUE, RUN_QUEUE } from "./lib/queue";
 
 const CONCURRENCY = Number(process.env.AGENT_CONCURRENCY ?? 3);
 const scheduleQueue = (key: string) => `agent-schedule-${key.toLowerCase()}`;
@@ -21,6 +22,12 @@ async function main() {
   await boss.work<{ runId: string }>(RUN_QUEUE, { localConcurrency: CONCURRENCY }, async ([job]) => {
     await executeRun(job.data.runId);
   });
+
+  await boss.work<{ sessionId: string }>(IDEA_QUEUE, { localConcurrency: CONCURRENCY }, async ([job]) => {
+    await executeIdeaTurn(job.data.sessionId);
+  });
+  // Сессии, зависшие в «думает» после падения воркера.
+  await prisma.ideaSession.updateMany({ where: { thinking: true }, data: { thinking: false } });
 
   for (const agent of AGENT_LIST) {
     const name = scheduleQueue(agent.key);
