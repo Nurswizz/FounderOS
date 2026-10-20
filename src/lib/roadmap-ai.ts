@@ -42,7 +42,7 @@ export async function generateRoadmap(
   if (!client) return withOrder(ROADMAP_TEMPLATE, "TEMPLATE");
   try {
     const res = await client.chat.completions.parse({
-      model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
+      model: process.env.OPENAI_MODEL ?? "gpt-6-luna",
       messages: [{ role: "user", content: prompt(startup) }],
       response_format: zodResponseFormat(RoadmapSchema, "roadmap"),
     });
