@@ -14,6 +14,7 @@ import { computeProgress } from "@/lib/progress";
 import { generateRoadmap } from "@/lib/roadmap-ai";
 import { githubToken, requireStartup, requireUserId } from "@/lib/session";
 import { STAGES, stageIndex, type Stage } from "@/lib/stages";
+import { parseStartupProfile } from "@/lib/startup";
 
 function str(form: FormData, key: string) {
   const v = form.get(key);
@@ -51,23 +52,19 @@ export async function signOutAction() {
 
 export async function createStartup(form: FormData) {
   const userId = await requireUserId();
-  const name = str(form, "name");
-  const description = str(form, "description");
-  if (!name || !description) return;
+  const profile = parseStartupProfile(form);
+  if (!profile) return;
 
   const stage = detectStage(
     Object.fromEntries(CHECKPOINTS.map((c) => [c.key, form.get(c.key) === "on"])) as never,
   );
-  const industry = optionalStr(form, "industry");
-  const drafts = await generateRoadmap({ name, description, industry, stage });
+  const drafts = await generateRoadmap({ ...profile, stage });
   const now = new Date();
 
   await prisma.startup.create({
     data: {
       userId,
-      name,
-      description,
-      industry,
+      ...profile,
       stage,
       roadmap: {
         create: drafts.map((d) => ({
@@ -271,5 +268,26 @@ export async function resolvePendingAction(form: FormData) {
   const startup = await requireStartup();
   await resolveAction(startup.id, str(form, "id"), str(form, "decision") === "approve");
   revalidatePath("/", "layout");
+}
+
+/* -------------------------------- settings ----------------------------------- */
+
+export async function updateStartup(form: FormData) {
+  const startup = await requireStartup();
+  const profile = parseStartupProfile(form);
+  if (!profile) redirect("/settings?error=invalid");
+
+  await prisma.startup.update({ where: { id: startup.id }, data: profile });
+  revalidatePath("/", "layout");
+  redirect("/settings?saved=1");
+}
+
+export async function deleteStartup(form: FormData) {
+  const startup = await requireStartup();
+  if (str(form, "confirm") !== startup.name) redirect("/settings?error=confirm");
+
+  // Каскадно удаляет роадмап, хаб, метрики, интеграции и запуски агентов.
+  await prisma.startup.delete({ where: { id: startup.id } });
+  redirect("/onboarding");
 }
 

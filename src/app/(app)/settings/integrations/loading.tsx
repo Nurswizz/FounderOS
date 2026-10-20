@@ -1,9 +1,8 @@
-import { Skeleton, SkeletonHeader } from "@/components/skeleton";
+import { Skeleton } from "@/components/skeleton";
 
 export default function Loading() {
   return (
     <>
-      <SkeletonHeader />
       <div className="space-y-5 lg:w-1/2 2xl:w-1/3 rounded-lg border border-zinc-200 p-5 dark:border-zinc-800">
         <div className="flex gap-4">
           <Skeleton className="size-10" />

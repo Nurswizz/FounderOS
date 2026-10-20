@@ -28,6 +28,7 @@ auth.ts (Auth.js, GitHub OAuth, сессии в БД)
 | `integrations/` | `index.ts` — реестр `Provider → sync`; `github.ts` — коммиты, issues, звёзды |
 | `agents/` | Команда AI-агентов, см. ниже |
 | `queue.ts` | pg-boss: продюсер (Next) и воркер, `enqueueRun` |
+| `startup.ts` | Валидация профиля стартапа (онбординг, настройки) |
 | `session.ts` | `requireUserId` / `requireStartup` — защита страниц и actions |
 
 Все мутации — `src/app/actions.ts`, каждая проверяет сессию и фильтрует по `startupId`.

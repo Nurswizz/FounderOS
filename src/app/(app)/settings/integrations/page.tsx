@@ -4,7 +4,7 @@ import { siGithub } from "simple-icons";
 import { connectGithub, disconnectIntegration, syncIntegration } from "@/app/actions";
 import { BrandIcon } from "@/components/brand-icon";
 import { SubmitButton } from "@/components/submit-button";
-import { buttonCls, ghostCls, inputCls, PageHeader } from "@/components/ui";
+import { buttonCls, ghostCls, inputCls } from "@/components/ui";
 import { listRepos } from "@/lib/integrations/github";
 import { prisma } from "@/lib/prisma";
 import { githubToken, requireStartup } from "@/lib/session";
@@ -26,7 +26,7 @@ export default async function Integrations({ searchParams }: PageProps<"/setting
 
   return (
     <>
-      <PageHeader title="Интеграции" subtitle="Подтягивайте метрики из рабочих инструментов" />
+      <p className="mb-6 text-sm text-zinc-500">Подтягивайте метрики из рабочих инструментов.</p>
 
       {typeof error === "string" && ERRORS[error] ? (
         <p className="mb-4 rounded-md border border-red-200 px-3 py-2 text-sm text-red-600 dark:border-red-900">{ERRORS[error]}</p>

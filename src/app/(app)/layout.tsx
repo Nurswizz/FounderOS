@@ -1,4 +1,4 @@
-import { BarChart3, Bot, Inbox, LayoutDashboard, Layers, LogOut, Map, Plug } from "lucide-react";
+import { BarChart3, Bot, Inbox, LayoutDashboard, Layers, LogOut, Map, Settings } from "lucide-react";
 import { signOutAction } from "@/app/actions";
 import { NavLink } from "@/components/nav-link";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -13,7 +13,7 @@ const NAV = [
   { href: "/metrics", label: "Метрики", icon: BarChart3 },
   { href: "/team", label: "Команда", icon: Bot },
   { href: "/inbox", label: "Одобрения", icon: Inbox, badge: true },
-  { href: "/settings/integrations", label: "Интеграции", icon: Plug },
+  { href: "/settings", label: "Настройки", icon: Settings },
 ];
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
