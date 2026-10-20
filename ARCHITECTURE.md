@@ -36,5 +36,12 @@ auth.ts (Auth.js, GitHub OAuth, сессии в БД)
 - Внешние: GitHub OAuth + REST API, OpenAI API (опционально).
 - UI: Tailwind 4, `lucide-react` (иконки), `simple-icons` (лого брендов).
 
+## UI-состояния
+- Загрузка страниц — `loading.tsx` в каждом роуте `(app)` со скелетонами (`components/skeleton.tsx`).
+- Формы — `SubmitButton` / `IconAction` (`components/submit-button.tsx`, `useFormStatus`): спиннер и блокировка на время action.
+- Отметка задач — `useOptimistic` в `roadmap-item.tsx`, UI меняется до ответа сервера.
+- Тема — `next-themes` (класс `.dark`, выбор в localStorage), переключатель `components/theme-toggle.tsx`. Тёмные лого брендов инвертируются (`isDarkBrand`).
+- Навигация — `useLinkStatus` в `nav-link.tsx`. Анимации (`fade-up`, `grow`) в `globals.css`, только под `motion-safe`.
+
 ## Новая интеграция
 Значение в enum `Provider` → файл `lib/integrations/<name>.ts` → строка в `INTEGRATIONS`.

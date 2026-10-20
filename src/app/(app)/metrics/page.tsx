@@ -3,7 +3,8 @@ import { siGithub } from "simple-icons";
 import { addMetric } from "@/app/actions";
 import { BrandIcon } from "@/components/brand-icon";
 import { Sparkline } from "@/components/sparkline";
-import { buttonCls, Empty, inputCls, PageHeader } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
+import { Empty, inputCls, PageHeader } from "@/components/ui";
 import { groupMetrics, METRIC_LABELS, metricLabel } from "@/lib/metrics";
 import { prisma } from "@/lib/prisma";
 import { requireStartup } from "@/lib/session";
@@ -28,11 +29,11 @@ export default async function Metrics() {
           {Object.keys(METRIC_LABELS).map((k) => <option key={k} value={k}>{METRIC_LABELS[k]}</option>)}
         </datalist>
         <input name="value" required inputMode="decimal" placeholder="Значение" className={inputCls + " max-w-36"} />
-        <button className={buttonCls}><Plus size={16} /> Записать</button>
+        <SubmitButton pendingText="Сохраняем…"><Plus size={16} /> Записать</SubmitButton>
       </form>
 
       {groups.length ? (
-        <table className="w-full text-sm">
+        <table className="w-full text-sm motion-safe:animate-fade-up">
           <thead className="text-left text-xs text-zinc-400">
             <tr>
               <th className="pb-2 font-normal">Метрика</th>
@@ -50,7 +51,7 @@ export default async function Metrics() {
                     {metricLabel(g.key)}
                   </span>
                 </td>
-                <td className="py-2.5"><Sparkline values={g.values.slice(-20)} /></td>
+                <td className="py-2.5"><Sparkline values={g.values.slice(-30)} width={200} /></td>
                 <td className="py-2.5 text-right font-medium tabular-nums">{g.latest.toLocaleString("ru")}</td>
                 <td className="py-2.5 text-right text-zinc-400">{g.at.toLocaleDateString("ru")}</td>
               </tr>

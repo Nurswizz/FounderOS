@@ -63,3 +63,9 @@ export function brandFor(url: string | null | undefined): SimpleIcon | null {
   });
   return hit?.[1] ?? null;
 }
+
+// Почти чёрные лого (GitHub, Notion, X) не видны на тёмном фоне — им нужна инверсия.
+export function isDarkBrand(icon: SimpleIcon) {
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(icon.hex.slice(i, i + 2), 16));
+  return (r * 299 + g * 587 + b * 114) / 1000 < 40;
+}

@@ -17,7 +17,7 @@ export function PageHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4 motion-safe:animate-fade-up">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         {subtitle ? <p className="mt-1 text-sm text-zinc-500">{subtitle}</p> : null}
@@ -39,7 +39,12 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className={"rounded-lg border border-zinc-200 p-5 dark:border-zinc-800 " + className}>
+    <section
+      className={
+        "rounded-lg border border-zinc-200 p-5 transition-colors hover:border-zinc-300 motion-safe:animate-fade-up dark:border-zinc-800 dark:hover:border-zinc-700 " +
+        className
+      }
+    >
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-medium text-zinc-500">{title}</h2>
         {action}
@@ -52,7 +57,10 @@ export function Section({
 export function ProgressBar({ value }: { value: number }) {
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
-      <div className="h-full rounded-full bg-indigo-600 transition-all" style={{ width: `${value}%` }} />
+      <div
+        className="h-full origin-left rounded-full bg-indigo-600 transition-[width] duration-500 motion-safe:animate-grow"
+        style={{ width: `${value}%` }}
+      />
     </div>
   );
 }

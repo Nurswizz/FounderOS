@@ -3,6 +3,8 @@ import { BarChart3, Compass, Layers } from "lucide-react";
 import { siGithub } from "simple-icons";
 import { auth } from "@/auth";
 import { BrandIcon } from "@/components/brand-icon";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { SubmitButton } from "@/components/submit-button";
 import { buttonCls } from "@/components/ui";
 import { signInWithGithub } from "./actions";
 
@@ -16,7 +18,10 @@ export default async function Landing() {
   if ((await auth())?.user) redirect("/dashboard");
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-3xl flex-col justify-center px-6 py-20">
+    <main className="mx-auto flex min-h-dvh max-w-3xl flex-col justify-center px-6 py-20 motion-safe:animate-fade-up">
+      <div className="fixed top-4 right-4">
+        <ThemeToggle />
+      </div>
       <p className="text-sm font-medium text-indigo-600">FounderOS</p>
       <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">
         Понятный путь для основателя стартапа
@@ -25,10 +30,10 @@ export default async function Landing() {
         Пошаговый роадмап, единое место для критичной информации и трекинг прогресса.
       </p>
       <form action={signInWithGithub} className="mt-8">
-        <button className={buttonCls + " px-4 py-2.5"}>
-          <span className="rounded-sm bg-white p-0.5"><BrandIcon icon={siGithub} size={14} /></span>
+        <SubmitButton className={buttonCls + " px-4 py-2.5"} pendingText="Переходим в GitHub…">
+          <BrandIcon icon={siGithub} size={16} mono />
           Войти через GitHub
-        </button>
+        </SubmitButton>
       </form>
       <div className="mt-16 grid gap-8 sm:grid-cols-3">
         {FEATURES.map(({ icon: Icon, title, text }) => (

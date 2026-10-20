@@ -3,6 +3,7 @@ import { deleteHubEntry, toggleHubPin } from "@/app/actions";
 import type { HubEntry } from "@/generated/prisma/client";
 import { brandFor } from "@/lib/brand";
 import { BrandIcon } from "./brand-icon";
+import { IconAction } from "./submit-button";
 
 const KIND_ICONS = { LINK: Link2, NOTE: StickyNote, CONTACT: User, DOC: FileText };
 
@@ -11,7 +12,7 @@ export function HubEntryRow({ entry, actions = true }: { entry: HubEntry; action
   const KindIcon = KIND_ICONS[entry.kind];
 
   return (
-    <li className="group flex items-start gap-3 py-2.5">
+    <li className="group flex items-start gap-3 py-2.5 motion-safe:animate-fade-up">
       <span className="mt-0.5 shrink-0 text-zinc-400">
         {brand ? <BrandIcon icon={brand} /> : <KindIcon size={16} />}
       </span>
@@ -26,19 +27,20 @@ export function HubEntryRow({ entry, actions = true }: { entry: HubEntry; action
         {entry.body ? <p className="mt-0.5 whitespace-pre-line text-xs text-zinc-500">{entry.body}</p> : null}
       </div>
       {actions ? (
-        <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-          <form action={toggleHubPin}>
-            <input type="hidden" name="id" value={entry.id} />
-            <button aria-label={entry.pinned ? "Открепить" : "Закрепить"} className="p-1 text-zinc-400 hover:text-zinc-900">
-              {entry.pinned ? <PinOff size={14} /> : <Pin size={14} />}
-            </button>
-          </form>
-          <form action={deleteHubEntry}>
-            <input type="hidden" name="id" value={entry.id} />
-            <button aria-label="Удалить" className="p-1 text-zinc-400 hover:text-red-600">
-              <Trash2 size={14} />
-            </button>
-          </form>
+        <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <IconAction
+            action={toggleHubPin}
+            fields={{ id: entry.id }}
+            label={entry.pinned ? "Открепить" : "Закрепить"}
+            icon={entry.pinned ? <PinOff size={14} /> : <Pin size={14} />}
+          />
+          <IconAction
+            action={deleteHubEntry}
+            fields={{ id: entry.id }}
+            label="Удалить"
+            icon={<Trash2 size={14} />}
+            className="p-1 text-zinc-400 hover:text-red-600"
+          />
         </div>
       ) : entry.pinned ? (
         <Pin size={12} className="mt-1 text-zinc-300" />

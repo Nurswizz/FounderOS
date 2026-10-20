@@ -32,7 +32,7 @@ export default async function Dashboard() {
         subtitle={`Роадмап выполнен на ${progress.overall}%`}
       />
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
         <Section title="Прогресс по стадиям" action={more("/roadmap")}>
           <ul className="space-y-3">
             {STAGES.map((stage) => {

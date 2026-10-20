@@ -3,6 +3,7 @@ import { RefreshCw, Unplug } from "lucide-react";
 import { siGithub } from "simple-icons";
 import { connectGithub, disconnectIntegration, syncIntegration } from "@/app/actions";
 import { BrandIcon } from "@/components/brand-icon";
+import { SubmitButton } from "@/components/submit-button";
 import { buttonCls, ghostCls, inputCls, PageHeader } from "@/components/ui";
 import { listRepos } from "@/lib/integrations/github";
 import { prisma } from "@/lib/prisma";
@@ -31,9 +32,10 @@ export default async function Integrations({ searchParams }: PageProps<"/setting
         <p className="mb-4 rounded-md border border-red-200 px-3 py-2 text-sm text-red-600 dark:border-red-900">{ERRORS[error]}</p>
       ) : null}
 
-      <section className="max-w-xl rounded-lg border border-zinc-200 p-5 dark:border-zinc-800">
+      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+      <section className="motion-safe:animate-fade-up rounded-lg border border-zinc-200 p-5 dark:border-zinc-800">
         <div className="flex items-start gap-4">
-          <span className="rounded-md border border-zinc-200 p-2 dark:border-zinc-800 dark:bg-white">
+          <span className="rounded-md border border-zinc-200 p-2 dark:border-zinc-800">
             <BrandIcon icon={siGithub} size={24} />
           </span>
           <div className="flex-1">
@@ -52,22 +54,23 @@ export default async function Integrations({ searchParams }: PageProps<"/setting
             <option value="" disabled>Выберите репозиторий</option>
             {repos.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
-          <button className={buttonCls + " shrink-0"}>{github ? "Сохранить" : "Подключить"}</button>
+          <SubmitButton className={buttonCls + " shrink-0"} pendingText="Подключаем…">{github ? "Сохранить" : "Подключить"}</SubmitButton>
         </form>
 
         {github ? (
           <div className="mt-3 flex gap-1">
             <form action={syncIntegration}>
               <input type="hidden" name="provider" value="GITHUB" />
-              <button className={ghostCls}><RefreshCw size={14} /> Синхронизировать</button>
+              <SubmitButton className={ghostCls} pendingText="Синхронизируем…"><RefreshCw size={14} /> Синхронизировать</SubmitButton>
             </form>
             <form action={disconnectIntegration}>
               <input type="hidden" name="provider" value="GITHUB" />
-              <button className={ghostCls}><Unplug size={14} /> Отключить</button>
+              <SubmitButton className={ghostCls}><Unplug size={14} /> Отключить</SubmitButton>
             </form>
           </div>
         ) : null}
       </section>
+      </div>
     </>
   );
 }

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { createHubEntry } from "@/app/actions";
 import { HubEntryRow } from "@/components/hub-entry";
-import { buttonCls, Empty, inputCls, PageHeader } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
+import { Empty, inputCls, PageHeader } from "@/components/ui";
 import { HubKind } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireStartup } from "@/lib/session";
@@ -32,14 +33,14 @@ export default async function Hub({ searchParams }: PageProps<"/hub">) {
     <>
       <PageHeader title="Хаб" subtitle="Критичная информация стартапа в одном месте" />
 
-      <form action={createHubEntry} className="mb-8 grid gap-2 rounded-lg border border-zinc-200 p-4 sm:grid-cols-[8rem_1fr_1fr] dark:border-zinc-800">
+      <form action={createHubEntry} className="mb-8 grid gap-2 rounded-lg motion-safe:animate-fade-up border border-zinc-200 p-4 sm:grid-cols-[8rem_1fr_1fr] xl:grid-cols-[8rem_1fr_1fr_1.5fr_auto] dark:border-zinc-800">
         <select name="kind" defaultValue={filter ?? "LINK"} className={inputCls}>
           {Object.values(HubKind).map((k) => <option key={k} value={k}>{KIND_LABELS[k]}</option>)}
         </select>
         <input name="title" required placeholder="Название" className={inputCls} />
         <input name="url" placeholder="Ссылка (необязательно)" className={inputCls} />
-        <textarea name="body" rows={2} placeholder="Заметка, телефон, email..." className={inputCls + " sm:col-span-2"} />
-        <button className={buttonCls}><Plus size={16} /> Добавить</button>
+        <textarea name="body" rows={1} placeholder="Заметка, телефон, email..." className={inputCls + " sm:col-span-2 xl:col-span-1"} />
+        <SubmitButton pendingText="Добавляем…"><Plus size={16} /> Добавить</SubmitButton>
       </form>
 
       <nav className="mb-4 flex flex-wrap gap-1">
@@ -48,7 +49,7 @@ export default async function Hub({ searchParams }: PageProps<"/hub">) {
       </nav>
 
       {entries.length ? (
-        <ul className="divide-y divide-zinc-100 dark:divide-zinc-900">
+        <ul className="grid gap-x-10 lg:grid-cols-2 2xl:grid-cols-3 [&>li]:border-b [&>li]:border-zinc-100 dark:[&>li]:border-zinc-900">
           {entries.map((e) => <HubEntryRow key={e.id} entry={e} />)}
         </ul>
       ) : (
