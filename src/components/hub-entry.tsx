@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FileText, Link2, Pin, PinOff, StickyNote, Trash2, User } from "lucide-react";
 import { deleteHubEntry, toggleHubPin } from "@/app/actions";
 import type { HubEntry } from "@/generated/prisma/client";
@@ -21,10 +22,14 @@ export function HubEntryRow({ entry, actions = true }: { entry: HubEntry; action
           <a href={entry.url} target="_blank" rel="noreferrer" className="text-sm hover:underline">
             {entry.title}
           </a>
+        ) : entry.body ? (
+          <Link href={`/hub/${entry.id}`} className="text-sm hover:underline">
+            {entry.title}
+          </Link>
         ) : (
           <p className="text-sm">{entry.title}</p>
         )}
-        {entry.body ? <p className="mt-0.5 whitespace-pre-line text-xs text-zinc-500">{entry.body}</p> : null}
+        {entry.body ? <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-xs text-zinc-500">{entry.body}</p> : null}
       </div>
       {actions ? (
         <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">

@@ -101,6 +101,9 @@ model Startup {
   hub          HubEntry[]
   metrics      Metric[]
   integrations Integration[]
+  agentRuns    AgentRun[]
+  actions      PendingAction[]
+  agentConfig  AgentSetting[]
 }
 
 model RoadmapItem {
@@ -128,6 +131,7 @@ model HubEntry {
   body      String?
   pinned    Boolean  @default(false)
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@index([startupId, kind])
 }
@@ -154,3 +158,94 @@ model Integration {
 
   @@unique([startupId, provider])
 }
+
+/* --------------------------------- agents ------------------------------------ */
+
+enum AgentKey {
+  CHIEF_OF_STAFF
+  MARKET_RESEARCHER
+  CUSTOMER_DISCOVERY
+  CTO
+}
+
+enum RunTrigger {
+  MANUAL
+  SCHEDULE
+  DELEGATED
+}
+
+enum RunStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+enum ActionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FAILED
+}
+
+model AgentRun {
+  id          String     @id @default(cuid())
+  startupId   String
+  startup     Startup    @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  agent       AgentKey
+  trigger     RunTrigger @default(MANUAL)
+  brief       String
+  status      RunStatus  @default(QUEUED)
+  output      String?
+  error       String?
+  parentRunId String?
+  parent      AgentRun?  @relation("Delegation", fields: [parentRunId], references: [id], onDelete: SetNull)
+  children    AgentRun[] @relation("Delegation")
+  createdAt   DateTime   @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+
+  steps   AgentStep[]
+  actions PendingAction[]
+
+  @@index([startupId, agent, createdAt])
+}
+
+model AgentStep {
+  id        String   @id @default(cuid())
+  runId     String
+  run       AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  tool      String
+  input     String
+  output    String
+  createdAt DateTime @default(now())
+
+  @@index([runId, createdAt])
+}
+
+model PendingAction {
+  id         String       @id @default(cuid())
+  runId      String
+  run        AgentRun     @relation(fields: [runId], references: [id], onDelete: Cascade)
+  startupId  String
+  startup    Startup      @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  kind       String
+  title      String
+  payload    Json
+  status     ActionStatus @default(PENDING)
+  result     String?
+  createdAt  DateTime     @default(now())
+  resolvedAt DateTime?
+
+  @@index([startupId, status])
+}
+
+model AgentSetting {
+  startupId       String
+  startup         Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  agent           AgentKey
+  scheduleEnabled Boolean  @default(false)
+
+  @@id([startupId, agent])
+}
+

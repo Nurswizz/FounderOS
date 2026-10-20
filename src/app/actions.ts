@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { signIn, signOut } from "@/auth";
-import { HubKind, Provider } from "@/generated/prisma/enums";
+import { AgentKey, HubKind, Provider } from "@/generated/prisma/enums";
+import { createRun } from "@/lib/agents/ops";
+import { resolveAction } from "@/lib/agents/pending";
+import { enqueueRun } from "@/lib/queue";
 import { INTEGRATIONS } from "@/lib/integrations";
 import { CHECKPOINTS, detectStage } from "@/lib/onboarding";
 import { prisma } from "@/lib/prisma";
@@ -235,3 +238,38 @@ export async function disconnectIntegration(form: FormData) {
   });
   revalidatePath("/settings/integrations");
 }
+
+/* ---------------------------------- team ------------------------------------- */
+
+export async function runAgent(form: FormData) {
+  const startup = await requireStartup();
+  const agent = str(form, "agent");
+  const brief = str(form, "brief");
+  if (!(agent in AgentKey) || !brief) return;
+
+  const { run, created } = await createRun(startup.id, { agent: agent as AgentKey, brief });
+  if (created) await enqueueRun(run.id);
+  redirect(`/team/runs/${run.id}`);
+}
+
+export async function toggleSchedule(form: FormData) {
+  const startup = await requireStartup();
+  const agent = str(form, "agent");
+  if (!(agent in AgentKey)) return;
+
+  const key = { startupId: startup.id, agent: agent as AgentKey };
+  const current = await prisma.agentSetting.findUnique({ where: { startupId_agent: key } });
+  await prisma.agentSetting.upsert({
+    where: { startupId_agent: key },
+    create: { ...key, scheduleEnabled: true },
+    update: { scheduleEnabled: !current?.scheduleEnabled },
+  });
+  revalidatePath("/team");
+}
+
+export async function resolvePendingAction(form: FormData) {
+  const startup = await requireStartup();
+  await resolveAction(startup.id, str(form, "id"), str(form, "decision") === "approve");
+  revalidatePath("/", "layout");
+}
+

@@ -1,8 +1,9 @@
-import { BarChart3, LayoutDashboard, Layers, LogOut, Map, Plug } from "lucide-react";
+import { BarChart3, Bot, Inbox, LayoutDashboard, Layers, LogOut, Map, Plug } from "lucide-react";
 import { signOutAction } from "@/app/actions";
 import { NavLink } from "@/components/nav-link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ghostCls } from "@/components/ui";
+import { prisma } from "@/lib/prisma";
 import { requireStartup } from "@/lib/session";
 
 const NAV = [
@@ -10,11 +11,14 @@ const NAV = [
   { href: "/roadmap", label: "Роадмап", icon: Map },
   { href: "/hub", label: "Хаб", icon: Layers },
   { href: "/metrics", label: "Метрики", icon: BarChart3 },
+  { href: "/team", label: "Команда", icon: Bot },
+  { href: "/inbox", label: "Одобрения", icon: Inbox, badge: true },
   { href: "/settings/integrations", label: "Интеграции", icon: Plug },
 ];
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const startup = await requireStartup();
+  const pending = await prisma.pendingAction.count({ where: { startupId: startup.id, status: "PENDING" } });
 
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
@@ -24,9 +28,12 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <p className="truncate text-sm font-medium">{startup.name}</p>
         </div>
         <nav className="flex gap-1 overflow-x-auto md:flex-col">
-          {NAV.map(({ href, label, icon: Icon }) => (
+          {NAV.map(({ href, label, icon: Icon, badge }) => (
             <NavLink key={href} href={href}>
               <Icon size={16} /> {label}
+              {badge && pending ? (
+                <span className="rounded-full bg-indigo-600 px-1.5 text-xs font-medium text-white tabular-nums">{pending}</span>
+              ) : null}
             </NavLink>
           ))}
         </nav>

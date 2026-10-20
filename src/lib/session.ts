@@ -15,7 +15,4 @@ export async function requireStartup() {
   return startup;
 }
 
-export async function githubToken(userId: string) {
-  const account = await prisma.account.findFirst({ where: { userId, provider: "github" } });
-  return account?.access_token ?? null;
-}
+export { githubToken } from "./integrations/github";
