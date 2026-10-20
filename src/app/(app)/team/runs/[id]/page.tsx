@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CornerDownRight, ExternalLink, Wrench } from "lucide-react";
-import { AgentAvatar, RunStatusBadge, timeAgo, triggerLabel } from "@/components/agent-ui";
+import { AgentAvatar, formatDuration, LiveActivity, RunStatusBadge, timeAgo, triggerLabel } from "@/components/agent-ui";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { Markdown } from "@/components/markdown";
 import { PendingActionRow } from "@/components/pending-action";
@@ -26,11 +26,13 @@ export default async function RunPage({ params }: PageProps<"/team/runs/[id]">) 
   if (!run) notFound();
 
   const active = run.status === "QUEUED" || run.status === "RUNNING";
-  const seconds = run.startedAt && run.finishedAt ? Math.round((run.finishedAt.getTime() - run.startedAt.getTime()) / 1000) : null;
+  const end = run.finishedAt ?? (active ? new Date() : null);
+  const seconds = run.startedAt && end ? Math.round((end.getTime() - run.startedAt.getTime()) / 1000) : null;
+  const now = run.status === "QUEUED" ? "Ждёт свободного воркера" : (run.activity ?? "Работает");
 
   return (
     <>
-      <AutoRefresh active={active} />
+      <AutoRefresh active={active} intervalMs={1000} />
       <Link href="/team" className="mb-6 inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100">
         <ArrowLeft size={14} /> Команда
       </Link>
@@ -43,10 +45,17 @@ export default async function RunPage({ params }: PageProps<"/team/runs/[id]">) 
             <RunStatusBadge status={run.status} />
             <span>{triggerLabel(run.trigger)}</span>
             <span>{timeAgo(run.createdAt)}</span>
-            {seconds !== null ? <span>{seconds} с</span> : null}
+            {seconds !== null ? <span className="tabular-nums">{formatDuration(seconds)}</span> : null}
           </p>
         </div>
       </div>
+
+      {active ? (
+        <div className="mb-6 flex items-center gap-4 rounded-lg border border-indigo-200 bg-indigo-50/50 px-5 py-4 dark:border-indigo-900 dark:bg-indigo-950/30">
+          <span className="text-xs font-medium tracking-wide text-indigo-600/70 uppercase">Сейчас</span>
+          <LiveActivity text={now} className="text-sm font-medium" />
+        </div>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-6">
@@ -67,7 +76,12 @@ export default async function RunPage({ params }: PageProps<"/team/runs/[id]">) 
               <p className="text-sm text-red-600">{run.error}</p>
             </Section>
           ) : null}
-          {active && !run.output ? (
+          {active && run.draft ? (
+            <Section title="Результат · пишется">
+              <Markdown>{run.draft}</Markdown>
+              <span className="mt-1 inline-block h-4 w-1.5 animate-pulse bg-indigo-600 align-middle" />
+            </Section>
+          ) : active ? (
             <Section title="Результат">
               <div className="space-y-2">
                 <div className="h-4 w-2/3 animate-pulse rounded bg-zinc-100 dark:bg-zinc-900" />
@@ -110,9 +124,9 @@ export default async function RunPage({ params }: PageProps<"/team/runs/[id]">) 
                 );
               })}
               {active ? (
-                <li className="relative text-sm text-indigo-600">
+                <li className="relative text-sm">
                   <span className="absolute top-1 -left-[25px] size-2.5 animate-ping rounded-full bg-indigo-600" />
-                  {run.status === "QUEUED" ? "Ждёт свободного воркера…" : "Агент работает…"}
+                  <LiveActivity text={`${now}…`} />
                 </li>
               ) : null}
               {!active && !run.steps.length ? (

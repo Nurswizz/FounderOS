@@ -36,7 +36,7 @@ auth.ts (Auth.js, GitHub OAuth, сессии в БД)
 ## Команда AI-агентов (`lib/agents`)
 - Агент = файл с `AgentDef` (инструкции, tools, расписание): `chief-of-staff.ts`, `market-researcher.ts`, `customer-discovery.ts`, `cto.ts`; реестр — `index.ts`.
 - `tools.ts` — tools для SDK, тонкие обёртки над `ops.ts` (доступ к данным, всегда со `startupId` из контекста запуска).
-- `runner.ts` — выполняет `AgentRun`: контекст стартапа + бриф → `run()` SDK, шаги пишет в `AgentStep` (хук `agent_tool_end`), итог/ошибку — в `AgentRun`.
+- `runner.ts` — выполняет `AgentRun`: контекст стартапа + бриф → `run()` SDK в режиме стрима. Шаги пишет в `AgentStep`, живой статус — в `AgentRun.activity` (что делает сейчас) и `AgentRun.draft` (ответ по ходу генерации). Источники: хуки инструментов и сырые события OpenAI (`steps.ts::rawEventActivity` — веб-поиск, размышление), записи идут одной очередью. UI опрашивает раз в секунду.
 - Внешние действия (GitHub issue, комментарий к PR) не выполняются агентом: создаётся `PendingAction`, после одобрения в `/inbox` его исполняет `pending.ts`.
 - Делегирование: Chief of Staff создаёт дочерний `AgentRun` (`parentRunId`) и ставит его в очередь.
 - Расписание: cron агента регистрирует воркер; по тику создаются запуски для стартапов с включённым `AgentSetting`.

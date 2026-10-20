@@ -52,6 +52,24 @@ export function RunStatusBadge({ status }: { status: RunStatus }) {
 const TRIGGERS = { MANUAL: "вручную", SCHEDULE: "по расписанию", DELEGATED: "от Chief of Staff" };
 export const triggerLabel = (t: keyof typeof TRIGGERS) => TRIGGERS[t];
 
+export function formatDuration(seconds: number) {
+  const m = Math.floor(seconds / 60);
+  return m ? `${m} мин ${seconds % 60} с` : `${seconds} с`;
+}
+
+// Живой статус агента: пульсирующая точка и текущее действие.
+export function LiveActivity({ text, className = "" }: { text: string; className?: string }) {
+  return (
+    <span className={"flex min-w-0 items-center gap-2 text-indigo-600 " + className}>
+      <span className="relative flex size-2 shrink-0">
+        <span className="absolute inline-flex size-full animate-ping rounded-full bg-indigo-500 opacity-75" />
+        <span className="relative inline-flex size-2 rounded-full bg-indigo-600" />
+      </span>
+      <span className="truncate">{text}</span>
+    </span>
+  );
+}
+
 const rtf = new Intl.RelativeTimeFormat("ru", { numeric: "auto" });
 export function timeAgo(date: Date) {
   const sec = Math.round((date.getTime() - Date.now()) / 1000);

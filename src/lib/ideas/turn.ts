@@ -1,16 +1,11 @@
 import { run, user, type AgentInputItem, type Model } from "@openai/agents";
 import { prisma } from "../prisma";
+import { rawEventActivity } from "../agents/steps";
 import { stripCitations } from "../text";
 import { ideaScout } from "./scout";
 
 const FLUSH_MS = 700;
 const TURN_TIMEOUT_MS = 10 * 60 * 1000;
-
-function searchActivity(action: unknown) {
-  const a = (action ?? {}) as { query?: string; queries?: string[]; url?: string };
-  const what = a.queries?.join(" · ") ?? a.query ?? a.url;
-  return what ? `Ищу: ${what}` : "Ищу в интернете…";
-}
 
 export async function executeIdeaTurn(sessionId: string, opts: { model?: Model } = {}) {
   const session = await prisma.ideaSession.findUnique({
@@ -49,10 +44,9 @@ export async function executeIdeaTurn(sessionId: string, opts: { model?: Model }
           flushedAt = Date.now();
           await update({ content: stripCitations(text) });
         }
-      } else if (event.type === "run_item_stream_event" && event.name === "tool_called") {
-        const raw = event.item.rawItem;
-        if (raw.type === "hosted_tool_call") await update({ activity: searchActivity(raw.providerData?.action) });
-        else if (raw.type === "function_call") await update({ activity: "Сохраняю идею…" });
+      } else if (event.type === "raw_model_stream_event" && event.data.type === "model") {
+        const raw = rawEventActivity(event.data.event);
+        if (raw) await update({ activity: raw.activity });
       }
     }
     await result.completed;

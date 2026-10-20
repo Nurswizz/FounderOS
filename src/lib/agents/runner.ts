@@ -4,16 +4,18 @@ import { RUN_TIMEOUT_SECONDS } from "../queue";
 import { stripCitations } from "../text";
 import { AGENTS } from ".";
 import { getOverview } from "./ops";
+import { rawEventActivity, stepActivity } from "./steps";
 import type { AgentContext } from "./tools";
 
 const MAX_TURNS = 25;
+const DRAFT_FLUSH_MS = 600;
 const TRIGGER_LABELS = { MANUAL: "от основателя", SCHEDULE: "по расписанию", DELEGATED: "от Chief of Staff" };
 
 export async function executeRun(runId: string, opts: { model?: Model } = {}) {
   // Захватываем только QUEUED — повторная доставка задачи не перезапустит работу.
   const claimed = await prisma.agentRun.updateMany({
     where: { id: runId, status: "QUEUED" },
-    data: { status: "RUNNING", startedAt: new Date() },
+    data: { status: "RUNNING", startedAt: new Date(), activity: "Изучает задачу и контекст стартапа" },
   });
   if (!claimed.count) return;
 
@@ -26,18 +28,22 @@ export async function executeRun(runId: string, opts: { model?: Model } = {}) {
     model: opts.model ?? process.env.OPENAI_MODEL ?? "gpt-6-luna",
   });
 
-  const stepWrites: Promise<unknown>[] = [];
+  // Хуки SDK синхронные — записи в БД выстраиваем в одну цепочку, чтобы статусы не обгоняли друг друга.
+  let writes: Promise<unknown> = Promise.resolve();
+  const enqueue = (write: () => Promise<unknown>) => {
+    writes = writes.then(write).catch((err) => console.error(`[agent] live write failed`, err));
+  };
+  const live = (data: { activity?: string; draft?: string | null }) =>
+    enqueue(() => prisma.agentRun.update({ where: { id: runId }, data }));
+  const argsOf = (call: { arguments?: string }) => call.arguments || "";
+
+  agent.on("agent_tool_start", (_ctx, tool, { toolCall }) => {
+    live({ activity: stepActivity(tool.name, argsOf(toolCall as { arguments?: string })), draft: null });
+  });
   agent.on("agent_tool_end", (_ctx, tool, result, { toolCall }) => {
-    stepWrites.push(
-      prisma.agentStep.create({
-        data: {
-          runId,
-          tool: tool.name,
-          input: ("arguments" in toolCall && toolCall.arguments) || "",
-          output: result.slice(0, 20_000),
-        },
-      }),
-    );
+    const input = argsOf(toolCall as { arguments?: string });
+    enqueue(() => prisma.agentStep.create({ data: { runId, tool: tool.name, input, output: result.slice(0, 20_000) } }));
+    live({ activity: "Думает над следующим шагом" });
   });
 
   const input = `${await getOverview(record.startupId)}\n\n---\nЗадача ${TRIGGER_LABELS[record.trigger]}:\n${record.brief}`;
@@ -50,31 +56,67 @@ export async function executeRun(runId: string, opts: { model?: Model } = {}) {
       signal: AbortSignal.timeout(RUN_TIMEOUT_SECONDS * 1000),
     });
 
-    // Hosted tools (веб-поиск) выполняются на стороне OpenAI и не вызывают agent_tool_end — ловим их в стриме.
+    let draft = "";
+    let flushedAt = 0;
+    let liveSearches = 0;
     for await (const event of result) {
+      if (event.type === "raw_model_stream_event" && event.data.type === "model") {
+        const raw = rawEventActivity(event.data.event);
+        if (!raw) continue;
+        if (raw.step) {
+          const step = raw.step;
+          liveSearches++;
+          enqueue(() => prisma.agentStep.create({ data: { runId, ...step, output: "" } }));
+        }
+        live({ activity: raw.activity, draft: null });
+        continue;
+      }
+      // Текст ответа — в черновик по ходу генерации.
+      if (event.type === "raw_model_stream_event" && event.data.type === "output_text_delta") {
+        draft += event.data.delta;
+        if (Date.now() - flushedAt > DRAFT_FLUSH_MS) {
+          flushedAt = Date.now();
+          live({ activity: "Пишет ответ", draft: stripCitations(draft) });
+        }
+        continue;
+      }
       if (event.type !== "run_item_stream_event" || event.name !== "tool_called") continue;
+      draft = "";
+      // Hosted tools (веб-поиск) не вызывают хуки. Обычно шаг уже записан по сырому событию выше,
+      // иначе (провайдер без сырых событий) — пишем здесь.
       const raw = event.item.rawItem;
-      if (raw.type === "hosted_tool_call") {
-        stepWrites.push(
-          prisma.agentStep.create({
-            data: { runId, tool: raw.name, input: JSON.stringify(raw.providerData?.action ?? {}), output: "" },
-          }),
-        );
+      if (raw.type === "hosted_tool_call" && liveSearches > 0) liveSearches--;
+      else if (raw.type === "hosted_tool_call") {
+        const input = JSON.stringify(raw.providerData?.action ?? {});
+        enqueue(() => prisma.agentStep.create({ data: { runId, tool: raw.name, input, output: "" } }));
+        live({ activity: stepActivity(raw.name, input), draft: null });
       }
     }
     await result.completed;
     if (result.error) throw result.error;
-    await Promise.allSettled(stepWrites);
+    await writes;
     await prisma.agentRun.update({
       where: { id: runId },
-      data: { status: "DONE", output: stripCitations(String(result.finalOutput ?? "")), finishedAt: new Date() },
+      data: {
+        status: "DONE",
+        output: stripCitations(String(result.finalOutput ?? "")),
+        activity: null,
+        draft: null,
+        finishedAt: new Date(),
+      },
     });
   } catch (err) {
-    await Promise.allSettled(stepWrites);
+    await writes;
     console.error(`[agent:${record.agent}] run ${runId} failed`, err);
     await prisma.agentRun.update({
       where: { id: runId },
-      data: { status: "FAILED", error: err instanceof Error ? err.message : String(err), finishedAt: new Date() },
+      data: {
+        status: "FAILED",
+        error: err instanceof Error ? err.message : String(err),
+        activity: null,
+        draft: null,
+        finishedAt: new Date(),
+      },
     });
   }
 }

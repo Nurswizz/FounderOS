@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CalendarClock, Inbox, Send } from "lucide-react";
 import { runAgent, toggleSchedule } from "@/app/actions";
-import { AgentAvatar, RunStatusBadge, timeAgo, triggerLabel } from "@/components/agent-ui";
+import { AgentAvatar, LiveActivity, RunStatusBadge, timeAgo, triggerLabel } from "@/components/agent-ui";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { SubmitButton } from "@/components/submit-button";
 import { Empty, inputCls, PageHeader, Section } from "@/components/ui";
@@ -20,7 +20,7 @@ export default async function Team() {
 
   return (
     <>
-      <AutoRefresh active={active} intervalMs={3000} />
+      <AutoRefresh active={active} intervalMs={1500} />
       <PageHeader title="Команда" subtitle="AI-агенты, которые работают на ваш стартап">
         {pending ? (
           <Link href="/inbox" className="inline-flex items-center gap-2 rounded-md border border-zinc-200 px-3 py-1.5 text-sm hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700">
@@ -47,8 +47,14 @@ export default async function Team() {
               <div className="min-h-5 text-xs text-zinc-500">
                 {last ? (
                   <Link href={`/team/runs/${last.id}`} className="flex items-center gap-2 hover:text-zinc-900 dark:hover:text-zinc-100">
-                    <RunStatusBadge status={last.status} />
-                    <span className="truncate">{timeAgo(last.createdAt)} · {last.brief}</span>
+                    {last.status === "RUNNING" ? (
+                      <LiveActivity text={last.activity ?? "Работает"} />
+                    ) : (
+                      <>
+                        <RunStatusBadge status={last.status} />
+                        <span className="truncate">{timeAgo(last.createdAt)} · {last.brief}</span>
+                      </>
+                    )}
                   </Link>
                 ) : (
                   "Ещё не запускался"
@@ -94,7 +100,11 @@ export default async function Team() {
                 <Link href={`/team/runs/${r.id}`} className="flex items-center gap-3 py-2.5 text-sm hover:text-zinc-900 dark:hover:text-zinc-100">
                   <AgentAvatar agent={r.agent} size="sm" />
                   <span className="w-40 shrink-0 font-medium">{AGENTS[r.agent].title}</span>
-                  <span className="min-w-0 flex-1 truncate text-zinc-500">{r.brief}</span>
+                  {r.status === "RUNNING" && r.activity ? (
+                    <LiveActivity text={r.activity} className="flex-1 text-sm" />
+                  ) : (
+                    <span className="min-w-0 flex-1 truncate text-zinc-500">{r.brief}</span>
+                  )}
                   <span className="hidden shrink-0 text-xs text-zinc-400 md:inline">{triggerLabel(r.trigger)}</span>
                   <span className="w-28 shrink-0 text-right text-xs text-zinc-400">{timeAgo(r.createdAt)}</span>
                   <span className="w-24 shrink-0 text-right"><RunStatusBadge status={r.status} /></span>

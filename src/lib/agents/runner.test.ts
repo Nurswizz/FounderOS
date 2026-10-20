@@ -31,6 +31,32 @@ describe("executeRun", () => {
     expect(JSON.stringify(model.requests[0].input)).toContain("CRM для автомоек");
   });
 
+  it("пишет живой статус по ходу работы и очищает его в конце", async () => {
+    const s = await createStartup();
+    const { run } = await createRun(s.id, { agent: "MARKET_RESEARCHER", brief: "Рынок" });
+    const seen: (string | null)[] = [];
+    const snapshot = async () => {
+      // Записи статуса асинхронные (хуки SDK синхронные) — даём им долететь.
+      await new Promise((r) => setTimeout(r, 100));
+      seen.push((await prisma.agentRun.findUniqueOrThrow({ where: { id: run.id } })).activity);
+    };
+
+    await executeRun(run.id, {
+      model: new FakeModel(
+        [
+          { call: { name: "save_hub_document", args: { title: "Конкуренты", body: "...", pinned: false } } },
+          { say: "Готово, документ сохранён." },
+        ],
+        snapshot,
+      ),
+    });
+
+    expect(seen[0]).toBe("Изучает задачу и контекст стартапа");
+    expect(seen[1]).toBe("Думает над следующим шагом");
+    const done = await prisma.agentRun.findUniqueOrThrow({ where: { id: run.id } });
+    expect(done).toMatchObject({ activity: null, draft: null, output: "Готово, документ сохранён." });
+  });
+
   it("логирует веб-поиск (hosted tool) как шаг", async () => {
     const s = await createStartup();
     const { run } = await createRun(s.id, { agent: "MARKET_RESEARCHER", brief: "Рынок" });

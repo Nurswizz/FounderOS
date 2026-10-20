@@ -199,6 +199,9 @@ model AgentRun {
   status      RunStatus  @default(QUEUED)
   output      String?
   error       String?
+  // Живой статус для UI: что агент делает прямо сейчас и черновик ответа по ходу стрима.
+  activity    String?
+  draft       String?
   parentRunId String?
   parent      AgentRun?  @relation("Delegation", fields: [parentRunId], references: [id], onDelete: SetNull)
   children    AgentRun[] @relation("Delegation")
