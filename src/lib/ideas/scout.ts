@@ -1,6 +1,7 @@
 import { Agent, tool, webSearchTool, type Model, type RunContext } from "@openai/agents";
 import { z } from "zod";
 import { prisma } from "../prisma";
+import { stripCitationsDeep } from "../text";
 
 export type IdeaContext = { sessionId: string };
 
@@ -16,7 +17,8 @@ const saveIdea = tool({
     risks: z.string(),
     evidence: z.array(z.object({ claim: z.string(), url: z.string() })).describe("Факты из веб-поиска со ссылками"),
   }),
-  execute: async ({ why_now, ...idea }, rc?: RunContext<unknown>) => {
+  execute: async (args, rc?: RunContext<unknown>) => {
+    const { why_now, ...idea } = stripCitationsDeep(args);
     const { sessionId } = rc!.context as IdeaContext;
     const saved = await prisma.ideaCandidate.create({ data: { ...idea, whyNow: why_now, sessionId } });
     return `Карточка «${saved.title}» сохранена.`;
@@ -32,7 +34,7 @@ const INSTRUCTIONS = `Ты — «Идейный скаут» FounderOS: помо
 4. Дальше помогай критиковать и дорабатывать: стресс-тест (кто платит, сколько, как найти первых 10 клиентов, конкуренты), при необходимости сохрани улучшенную версию новой карточкой.
 5. Когда человек определился, скажи нажать «Выбрать» на карточке — дальше FounderOS построит роадмап.
 
-Формат ответа: Markdown, без длинных простыней. Ссылки на источники — в тексте.`;
+Формат ответа: Markdown, без длинных простыней. Ссылки на источники — обычным Markdown [текст](url) в тексте, без служебных маркеров цитат.`;
 
 export function ideaScout(model?: Model) {
   return new Agent<IdeaContext>({

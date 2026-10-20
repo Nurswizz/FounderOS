@@ -1,5 +1,6 @@
 import { run, user, type AgentInputItem, type Model } from "@openai/agents";
 import { prisma } from "../prisma";
+import { stripCitations } from "../text";
 import { ideaScout } from "./scout";
 
 const FLUSH_MS = 700;
@@ -46,7 +47,7 @@ export async function executeIdeaTurn(sessionId: string, opts: { model?: Model }
         text += event.data.delta;
         if (Date.now() - flushedAt > FLUSH_MS) {
           flushedAt = Date.now();
-          await update({ content: text });
+          await update({ content: stripCitations(text) });
         }
       } else if (event.type === "run_item_stream_event" && event.name === "tool_called") {
         const raw = event.item.rawItem;
@@ -60,7 +61,7 @@ export async function executeIdeaTurn(sessionId: string, opts: { model?: Model }
     await prisma.$transaction([
       prisma.ideaMessage.update({
         where: { id: reply.id },
-        data: { content: String(result.finalOutput ?? text), activity: null },
+        data: { content: stripCitations(String(result.finalOutput ?? text)), activity: null },
       }),
       prisma.ideaSession.update({
         where: { id: sessionId },

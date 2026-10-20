@@ -83,6 +83,27 @@ describe("executeIdeaTurn", () => {
   });
 });
 
+describe("маркеры цитат", () => {
+  it("не попадают в ответ и карточку", async () => {
+    const cite = "\uE200cite\uE202turn0search0\uE201";
+    const user = await newUser();
+    const { session } = await sendIdeaMessage(user.id, "ищи");
+
+    await executeIdeaTurn(session.id, {
+      model: new FakeModel([
+        { call: { name: "save_idea", args: { ...IDEA, problem: `Очереди ${cite}`, evidence: [{ claim: `Рост ${cite}`, url: "https://x.kz" }] } } },
+        { say: `Опрос 898 руководителей. ${cite}` },
+      ]),
+    });
+
+    const after = await prisma.ideaSession.findUniqueOrThrow({ where: { id: session.id }, include: { messages: true, ideas: true } });
+    // history — внутренний контекст модели, там маркеры допустимы; видимые данные — без них.
+    expect(JSON.stringify([after.messages, after.ideas])).not.toMatch(/[\uE200-\uE2FF]/);
+    expect(after.messages.find((m) => m.role === "assistant")?.content).toBe("Опрос 898 руководителей.");
+    expect(after.ideas[0].problem).toBe("Очереди");
+  });
+});
+
 describe("ideaForUser", () => {
   it("не отдаёт чужую идею", async () => {
     const [a, b] = [await newUser(), await newUser()];

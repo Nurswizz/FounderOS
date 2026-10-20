@@ -1,6 +1,7 @@
 import { Agent, run, type Model } from "@openai/agents";
 import { prisma } from "../prisma";
 import { RUN_TIMEOUT_SECONDS } from "../queue";
+import { stripCitations } from "../text";
 import { AGENTS } from ".";
 import { getOverview } from "./ops";
 import type { AgentContext } from "./tools";
@@ -66,7 +67,7 @@ export async function executeRun(runId: string, opts: { model?: Model } = {}) {
     await Promise.allSettled(stepWrites);
     await prisma.agentRun.update({
       where: { id: runId },
-      data: { status: "DONE", output: String(result.finalOutput ?? ""), finishedAt: new Date() },
+      data: { status: "DONE", output: stripCitations(String(result.finalOutput ?? "")), finishedAt: new Date() },
     });
   } catch (err) {
     await Promise.allSettled(stepWrites);

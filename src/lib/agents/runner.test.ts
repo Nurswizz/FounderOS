@@ -56,6 +56,22 @@ describe("executeRun", () => {
     expect(step.output).toContain("GitHub не подключён");
   });
 
+  it("вырезает маркеры цитат из итога и документов", async () => {
+    const cite = "\uE200cite\uE202turn0search0\uE201";
+    const s = await createStartup();
+    const { run } = await createRun(s.id, { agent: "MARKET_RESEARCHER", brief: "Рынок" });
+
+    await executeRun(run.id, {
+      model: new FakeModel([
+        { call: { name: "save_hub_document", args: { title: "Рынок", body: `TAM 10 млн ${cite}`, pinned: false } } },
+        { say: `Готово ${cite}` },
+      ]),
+    });
+
+    expect((await prisma.agentRun.findUniqueOrThrow({ where: { id: run.id } })).output).toBe("Готово");
+    expect((await prisma.hubEntry.findFirstOrThrow({ where: { startupId: s.id } })).body).toBe("TAM 10 млн");
+  });
+
   it("ошибка модели переводит запуск в FAILED", async () => {
     const s = await createStartup();
     const { run } = await createRun(s.id, { agent: "CTO", brief: "дайджест" });

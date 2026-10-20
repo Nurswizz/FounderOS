@@ -3,6 +3,7 @@ import { groupMetrics, metricLabel } from "../metrics";
 import { prisma } from "../prisma";
 import { computeProgress, nextSteps } from "../progress";
 import { STAGE_LABELS, type Stage } from "../stages";
+import { stripCitationsDeep } from "../text";
 
 // Все операции принимают startupId из контекста запуска — модель его не передаёт.
 
@@ -57,8 +58,9 @@ export async function completeRoadmapItem(startupId: string, itemId: string) {
 
 export async function addRoadmapItem(
   startupId: string,
-  item: { stage: Stage; title: string; description?: string },
+  raw: { stage: Stage; title: string; description?: string },
 ) {
+  const item = stripCitationsDeep(raw);
   const last = await prisma.roadmapItem.aggregate({
     where: { startupId, stage: item.stage },
     _max: { order: true },
@@ -84,8 +86,9 @@ export function readHubEntry(startupId: string, id: string) {
 
 export async function saveHubDocument(
   startupId: string,
-  doc: { title: string; body: string; kind?: HubKind; pinned?: boolean },
+  raw: { title: string; body: string; kind?: HubKind; pinned?: boolean },
 ) {
+  const doc = stripCitationsDeep(raw);
   const kind = doc.kind ?? "DOC";
   const existing = await prisma.hubEntry.findFirst({ where: { startupId, kind, title: doc.title } });
   const data = { body: doc.body, pinned: doc.pinned ?? existing?.pinned ?? false };
@@ -132,7 +135,9 @@ export function proposeAction(
   scope: RunScope,
   action: { kind: string; title: string; payload: Prisma.InputJsonObject },
 ) {
-  return prisma.pendingAction.create({ data: { ...action, startupId: scope.startupId, runId: scope.runId } });
+  return prisma.pendingAction.create({
+    data: { ...stripCitationsDeep(action), startupId: scope.startupId, runId: scope.runId },
+  });
 }
 
 export async function createScheduledRuns(agent: AgentKey, brief: string) {
